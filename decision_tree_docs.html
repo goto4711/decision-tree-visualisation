@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree Construction - Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        h2 {
+            color: #059669;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-left: 5px solid #059669;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            color: #d97706;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .formula {
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+        }
+        
+        .example-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .example-box h4 {
+            color: #d97706;
+            margin-bottom: 10px;
+        }
+        
+        .key-concept {
+            background: #dbeafe;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .key-concept strong {
+            color: #1e40af;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+        
+        li {
+            margin-bottom: 10px;
+        }
+        
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #dc2626;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .algorithm-steps {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .algorithm-steps ol {
+            margin-left: 20px;
+        }
+        
+        .note {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .note strong {
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Decision Tree Construction Documentation</h1>
+        <p><em>A Comprehensive Guide to Understanding Decision Trees Using Impurity Criteria</em></p>
+        
+        <div class="section">
+            <h2>1. Introduction</h2>
+            <p>
+                Decision trees are supervised machine learning algorithms used for both classification and regression tasks. 
+                They work by recursively splitting the data based on feature values to create a tree-like structure of decisions.
+                This visualization demonstrates how decision trees are constructed using the <strong>Gini impurity criterion</strong> 
+                with Spotify music data to predict song danceability.
+            </p>
+            
+            <div class="key-concept">
+                <strong>Learning Objective:</strong> Understand how decision trees select features and thresholds at each 
+                split to minimize impurity and create increasingly pure nodes.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>2. Dataset Overview</h2>
+            <p>
+                Our dataset contains 12 songs from a Spotify-like music database. Each song has the following features:
+            </p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Description</th>
+                        <th>Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Energy</strong></td>
+                        <td>Perceptual measure of intensity and activity</td>
+                        <td>0.0 - 1.0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tempo</strong></td>
+                        <td>Speed or pace of the song in BPM</td>
+                        <td>80 - 130 BPM</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Valence</strong></td>
+                        <td>Musical positiveness (happiness/cheerfulness)</td>
+                        <td>0.0 - 1.0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Danceability</strong></td>
+                        <td>Target variable: Is the song danceable?</td>
+                        <td>0 (No) or 1 (Yes)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>3. Gini Impurity</h2>
+            
+            <h3>3.1 Definition</h3>
+            <p>
+                Gini impurity is a measure of how often a randomly chosen element from a set would be incorrectly 
+                labeled if it was randomly labeled according to the distribution of labels in the subset.
+            </p>
+            
+            <div class="formula">
+                Gini(S) = 1 - Σ(p<sub>i</sub>)<sup>2</sup>
+            </div>
+            
+            <p>Where:</p>
+            <ul>
+                <li><code>S</code> is the set of samples</li>
+                <li><code>p<sub>i</sub></code> is the proportion of samples belonging to class <code>i</code></li>
+                <li>The sum is taken over all classes</li>
+            </ul>
+            
+            <h3>3.2 Interpreting Gini Values</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Gini Value</th>
+                        <th>Interpretation</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>0.0</td>
+                        <td>Perfect purity - all samples belong to one class</td>
+                        <td>All songs are danceable OR all are not danceable</td>
+                    </tr>
+                    <tr>
+                        <td>0.5</td>
+                        <td>Maximum impurity (for binary classification)</td>
+                        <td>50% danceable, 50% not danceable</td>
+                    </tr>
+                    <tr>
+                        <td>0.1 - 0.4</td>
+                        <td>Low to moderate impurity</td>
+                        <td>Majority of songs belong to one class</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="example-box">
+                <h4>Example Calculation:</h4>
+                <p>Node with 8 danceable songs and 4 non-danceable songs:</p>
+                <ul>
+                    <li>p<sub>danceable</sub> = 8/12 = 0.667</li>
+                    <li>p<sub>not_danceable</sub> = 4/12 = 0.333</li>
+                    <li>Gini = 1 - (0.667² + 0.333²) = 1 - (0.445 + 0.111) = 0.444</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>4. The Tree Construction Algorithm</h2>
+            
+            <div class="algorithm-steps">
+                <h3>CART Algorithm (Classification and Regression Trees)</h3>
+                <ol>
+                    <li><strong>Start with the root node</strong> containing all training samples</li>
+                    <li><strong>For each feature:</strong>
+                        <ul>
+                            <li>Sort the values of that feature</li>
+                            <li>For each potential threshold between consecutive values:</li>
+                            <ul>
+                                <li>Split the data into left (≤ threshold) and right (> threshold) subsets</li>
+                                <li>Calculate weighted Gini impurity of the split</li>
+                            </ul>
+                        </ul>
+                    </li>
+                    <li><strong>Select the feature and threshold</strong> that minimize the weighted Gini impurity</li>
+                    <li><strong>Create two child nodes</strong> with the split data</li>
+                    <li><strong>Recursively apply steps 2-4</strong> to each child node until stopping criteria are met</li>
+                </ol>
+            </div>
+            
+            <h3>4.1 Weighted Gini Impurity</h3>
+            <p>
+                When evaluating a split, we calculate the weighted average of the Gini impurities of the resulting child nodes:
+            </p>
+            
+            <div class="formula">
+                Gini<sub>split</sub> = (n<sub>left</sub> / n<sub>total</sub>) × Gini<sub>left</sub> + (n<sub>right</sub> / n<sub>total</sub>) × Gini<sub>right</sub>
+            </div>
+            
+            <p>
+                The split that produces the <strong>lowest weighted Gini impurity</strong> is chosen as the best split.
+            </p>
+        </div>
+        
+        <div class="section">
+            <h2>5. Step-by-Step Tree Construction</h2>
+            
+            <h3>5.1 Step 1: Root Node (Initial State)</h3>
+            <p>
+                We begin with all 12 songs at the root node. The algorithm evaluates all features (Energy, Tempo, Valence) 
+                and all possible thresholds to find the split that minimizes impurity.
+            </p>
+            
+            <div class="key-concept">
+                <strong>Key Insight:</strong> The feature that provides the best separation between danceable and 
+                non-danceable songs at this level is chosen first.
+            </div>
+            
+            <h3>5.2 Step 2: First Split (Level 1)</h3>
+            <p>
+                After evaluating all features, the algorithm determines that <strong>Energy</strong> provides the best split. 
+                Songs are divided into:
+            </p>
+            <ul>
+                <li><strong>Left child:</strong> Songs with Energy ≤ threshold (lower energy songs)</li>
+                <li><strong>Right child:</strong> Songs with Energy > threshold (higher energy songs)</li>
+            </ul>
+            
+            <p>
+                Notice how the weighted Gini impurity decreases compared to the root node, indicating that we're 
+                making progress in separating the classes.
+            </p>
+            
+            <h3>5.3 Step 3: Second Split (Level 2)</h3>
+            <p>
+                Each child node from Level 1 is now split again using the best available feature:
+            </p>
+            <ul>
+                <li><strong>Left branch:</strong> Further split on Tempo</li>
+                <li><strong>Right branch:</strong> Further split on Valence</li>
+            </ul>
+            
+            <p>
+                At this level, we observe that some nodes become nearly pure (low Gini), while others still contain 
+                mixed classes. This demonstrates that different parts of the feature space require different 
+                splitting strategies.
+            </p>
+            
+            <div class="note">
+                <strong>Important:</strong> The algorithm may choose different features for different branches. 
+                There's no requirement to use the same feature across a level.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>6. Understanding the Visualization</h2>
+            
+            <h3>6.1 Tree Diagram Elements</h3>
+            <ul>
+                <li><strong>Blue nodes (Root):</strong> The starting point with all data</li>
+                <li><strong>Green nodes (Level 1):</strong> First split based on the best feature</li>
+                <li><strong>Orange nodes (Level 2):</strong> Second level splits, closer to pure classifications</li>
+                <li><strong>Node labels:</strong> Show the splitting criterion and sample count (n)</li>
+                <li><strong>Dance ratio:</strong> Shows how many danceable songs vs. total songs in each leaf</li>
+            </ul>
+            
+            <h3>6.2 Chart Interpretations</h3>
+            
+            <h4>Feature Selection Chart (Step 1)</h4>
+            <p>
+                Displays the weighted Gini impurity for splits on each feature. The feature with the 
+                <strong>lowest bar</strong> is selected for splitting.
+            </p>
+            
+            <h4>Node Statistics Chart (Steps 2-3)</h4>
+            <p>
+                Shows two synchronized charts:
+            </p>
+            <ul>
+                <li><strong>Top chart:</strong> Number of samples and danceable songs per node</li>
+                <li><strong>Bottom chart:</strong> Gini impurity for each node</li>
+            </ul>
+            
+            <p>
+                Watch how impurity generally decreases as we go deeper into the tree!
+            </p>
+        </div>
+        
+        <div class="section">
+            <h2>7. Stopping Criteria</h2>
+            <p>
+                In practice, trees continue growing until one or more stopping criteria are met:
+            </p>
+            
+            <ul>
+                <li><strong>Maximum depth:</strong> Limit the height of the tree</li>
+                <li><strong>Minimum samples per node:</strong> Stop if a node has fewer than N samples</li>
+                <li><strong>Minimum impurity decrease:</strong> Stop if the impurity decrease is below a threshold</li>
+                <li><strong>Pure nodes:</strong> Stop when Gini impurity = 0 (all samples same class)</li>
+                <li><strong>Maximum leaves:</strong> Limit the total number of leaf nodes</li>
+            </ul>
+            
+            <div class="note">
+                <strong>Overfitting Warning:</strong> Trees that are too deep may memorize the training data 
+                rather than learning general patterns. Proper stopping criteria and pruning help prevent this.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>8. Making Predictions</h2>
+            <p>
+                Once the tree is built, predictions are made by:
+            </p>
+            <ol>
+                <li>Starting at the root node</li>
+                <li>Following the decision path based on the sample's feature values</li>
+                <li>Arriving at a leaf node</li>
+                <li>Returning the majority class in that leaf node</li>
+            </ol>
+            
+            <div class="example-box">
+                <h4>Example Prediction:</h4>
+                <p>New song with: Energy = 0.80, Tempo = 120, Valence = 0.65</p>
+                <ol>
+                    <li>Root: Energy (0.80) > threshold → Go RIGHT</li>
+                    <li>Level 1 (Right): Valence (0.65) > threshold → Go RIGHT</li>
+                    <li>Level 2 (Right-Right): Leaf node predicts <strong>Danceable = 1</strong></li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>9. Advantages and Limitations</h2>
+            
+            <h3>9.1 Advantages</h3>
+            <ul>
+                <li>Easy to understand and interpret (visual and intuitive)</li>
+                <li>Requires little data preprocessing</li>
+                <li>Can handle both numerical and categorical data</li>
+                <li>Captures non-linear relationships</li>
+                <li>Fast to train and predict</li>
+            </ul>
+            
+            <h3>9.2 Limitations</h3>
+            <ul>
+                <li>Prone to overfitting on complex datasets</li>
+                <li>Can be unstable (small changes in data lead to different trees)</li>
+                <li>Biased toward features with more levels</li>
+                <li>May create overly complex trees</li>
+                <li>Not optimal for very high-dimensional data</li>
+            </ul>
+            
+            <div class="key-concept">
+                <strong>Solution:</strong> Ensemble methods like Random Forests and Gradient Boosting combine 
+                multiple decision trees to overcome many of these limitations.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>10. Key Takeaways</h2>
+            <ul>
+                <li>Decision trees recursively partition the feature space to separate classes</li>
+                <li>Gini impurity measures the "mixedness" of classes in a node (0 = pure, 0.5 = maximum impurity for binary classification)</li>
+                <li>At each split, the algorithm chooses the feature and threshold that minimize weighted Gini impurity</li>
+                <li>The tree grows level by level, with impurity generally decreasing at deeper levels</li>
+                <li>Different branches may use different features for splitting</li>
+                <li>Proper stopping criteria are essential to prevent overfitting</li>
+                <li>Decision trees form the foundation for powerful ensemble methods</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>11. Further Reading</h2>
+            <ul>
+                <li>Breiman, L., et al. (1984). Classification and Regression Trees (CART)</li>
+                <li>Quinlan, J. R. (1986). Induction of Decision Trees</li>
+                <li>Scikit-learn Documentation: Decision Trees</li>
+                <li>Hastie, T., et al. (2009). The Elements of Statistical Learning</li>
+            </ul>
+        </div>
+        
+        <footer style="margin-top: 60px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b;">
+            <p>Decision Tree Construction Visualization - Educational Documentation</p>
+            <p>Created for teaching machine learning concepts</p>
+        </footer>
+    </div>
+</body>
+</html>
