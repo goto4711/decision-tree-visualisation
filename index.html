@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree Construction Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(to bottom right, #f0fdf4, #dbeafe);
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        h1 {
+            font-size: 30px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #1f2937;
+        }
+        .subtitle {
+            text-align: center;
+            color: #4b5563;
+            margin-bottom: 24px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background: #2563eb;
+        }
+        .step-indicator {
+            padding: 8px 16px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card h2 {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        .card p {
+            color: #4b5563;
+        }
+        .chart-container {
+            margin-top: 16px;
+        }
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 200px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background: #f9fafb;
+        }
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 150px;
+        }
+        .bar {
+            width: 60px;
+            background: #3b82f6;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease;
+        }
+        .bar.green { background: #10b981; }
+        .bar.orange { background: #f59e0b; }
+        .bar.red { background: #ef4444; }
+        .bar-label {
+            margin-top: 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #4b5563;
+        }
+        .bar-value {
+            margin-bottom: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+        ul {
+            font-size: 14px;
+            color: #4b5563;
+            line-height: 1.8;
+        }
+        ul li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 16px;">
+            <a href="decision_tree_docs.html" style="color: #2563eb; text-decoration: none; font-weight: 500; font-size: 14px; padding: 8px 16px; border: 2px solid #2563eb; border-radius: 4px; display: inline-block; transition: all 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='#2563eb';">
+                📖 View Documentation
+            </a>
+        </div>
+        <h1>Decision Tree Construction</h1>
+        <p class="subtitle">Predicting Song Danceability from Spotify Features</p>
+
+        <div class="controls">
+            <button id="prevBtn" onclick="previousStep()">Previous</button>
+            <span class="step-indicator" id="stepIndicator">Step 1 of 3</span>
+            <button id="nextBtn" onclick="nextStep()">Next</button>
+        </div>
+
+        <div class="card">
+            <h2 id="stepTitle"></h2>
+            <p id="stepDescription"></p>
+        </div>
+
+        <div class="card" style="padding: 32px;">
+            <svg id="treeSvg" width="100%" height="500" viewBox="0 0 800 500"></svg>
+        </div>
+
+        <div class="card">
+            <h3 id="chartTitle" style="font-size: 18px; font-weight: bold; color: #1f2937; margin-bottom: 16px;">Feature Selection: Impurity Comparison</h3>
+            <div id="chartContainer"></div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-weight: bold; color: #1f2937; margin-bottom: 8px;">How It Works:</h3>
+            <ul>
+                <li><strong>Gini Impurity:</strong> Measures node purity (0 = pure, 0.5 = maximum impurity for binary classification)</li>
+                <li><strong>Best Split:</strong> Choose feature and threshold that minimize weighted Gini impurity</li>
+                <li><strong>Features:</strong> Energy (0-1), Tempo (BPM), Valence (0-1 musical positivity)</li>
+                <li><strong>Goal:</strong> Predict if a song is danceable (1) or not danceable (0)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const data = [
+            { id: 1, tempo: 125, energy: 0.85, valence: 0.75, danceability: 1 },
+            { id: 2, tempo: 95, energy: 0.45, valence: 0.35, danceability: 0 },
+            { id: 3, tempo: 130, energy: 0.90, valence: 0.80, danceability: 1 },
+            { id: 4, tempo: 88, energy: 0.40, valence: 0.30, danceability: 0 },
+            { id: 5, tempo: 118, energy: 0.75, valence: 0.65, danceability: 1 },
+            { id: 6, tempo: 92, energy: 0.50, valence: 0.40, danceability: 1 },
+            { id: 7, tempo: 110, energy: 0.68, valence: 0.55, danceability: 0 },
+            { id: 8, tempo: 122, energy: 0.82, valence: 0.70, danceability: 1 },
+            { id: 9, tempo: 85, energy: 0.38, valence: 0.28, danceability: 0 },
+            { id: 10, tempo: 128, energy: 0.88, valence: 0.78, danceability: 1 },
+            { id: 11, tempo: 105, energy: 0.62, valence: 0.50, danceability: 0 },
+            { id: 12, tempo: 115, energy: 0.72, valence: 0.60, danceability: 1 },
+        ];
+
+        let currentStep = 0;
+
+        function calculateGini(subset) {
+            if (subset.length === 0) return 0;
+            const danceable = subset.filter(d => d.danceability === 1).length;
+            const notDanceable = subset.length - danceable;
+            const p1 = danceable / subset.length;
+            const p2 = notDanceable / subset.length;
+            return 1 - (p1 * p1 + p2 * p2);
+        }
+
+        function findBestSplit(dataset, feature) {
+            const values = [...new Set(dataset.map(d => d[feature]))].sort((a, b) => a - b);
+            let bestGini = Infinity;
+            let bestThreshold = null;
+            
+            for (let i = 0; i < values.length - 1; i++) {
+                const threshold = (values[i] + values[i + 1]) / 2;
+                const left = dataset.filter(d => d[feature] <= threshold);
+                const right = dataset.filter(d => d[feature] > threshold);
+                
+                const giniLeft = calculateGini(left);
+                const giniRight = calculateGini(right);
+                const weightedGini = (left.length / dataset.length) * giniLeft + 
+                                    (right.length / dataset.length) * giniRight;
+                
+                if (weightedGini < bestGini) {
+                    bestGini = weightedGini;
+                    bestThreshold = threshold;
+                }
+            }
+            
+            return { threshold: bestThreshold, gini: bestGini };
+        }
+
+        const rootGini = calculateGini(data);
+        const energySplit = findBestSplit(data, 'energy');
+        const leftSubset = data.filter(d => d.energy <= energySplit.threshold);
+        const rightSubset = data.filter(d => d.energy > energySplit.threshold);
+        
+        const tempoSplitLeft = findBestSplit(leftSubset, 'tempo');
+        const valenceSplitRight = findBestSplit(rightSubset, 'valence');
+        
+        const leftLeftSubset = leftSubset.filter(d => d.tempo <= tempoSplitLeft.threshold);
+        const leftRightSubset = leftSubset.filter(d => d.tempo > tempoSplitLeft.threshold);
+        const rightLeftSubset = rightSubset.filter(d => d.valence <= valenceSplitRight.threshold);
+        const rightRightSubset = rightSubset.filter(d => d.valence > valenceSplitRight.threshold);
+
+        const steps = [
+            {
+                title: "Step 1: Root Node - Initial Dataset",
+                description: `We start with all 12 songs. Gini impurity = ${rootGini.toFixed(3)}. We need to find the best feature to split on.`,
+                activeNode: 'root',
+                chartType: 'single',
+                chartData: [
+                    { label: 'Energy', value: findBestSplit(data, 'energy').gini },
+                    { label: 'Tempo', value: findBestSplit(data, 'tempo').gini },
+                    { label: 'Valence', value: findBestSplit(data, 'valence').gini }
+                ]
+            },
+            {
+                title: "Step 2: First Split on Energy",
+                description: `Energy gives the lowest Gini (${energySplit.gini.toFixed(3)}). Split: Energy ≤ ${energySplit.threshold.toFixed(2)}`,
+                activeNode: 'level1',
+                chartType: 'double',
+                chartData: [
+                    { 
+                        label: `Left (≤${energySplit.threshold.toFixed(2)})`,
+                        samples: leftSubset.length,
+                        danceable: leftSubset.filter(d => d.danceability === 1).length,
+                        gini: calculateGini(leftSubset)
+                    },
+                    { 
+                        label: `Right (>${energySplit.threshold.toFixed(2)})`,
+                        samples: rightSubset.length,
+                        danceable: rightSubset.filter(d => d.danceability === 1).length,
+                        gini: calculateGini(rightSubset)
+                    }
+                ]
+            },
+            {
+                title: "Step 3: Second Level Splits",
+                description: `Left node splits on Tempo ≤ ${tempoSplitLeft.threshold.toFixed(0)}. Right node splits on Valence ≤ ${valenceSplitRight.threshold.toFixed(2)}.`,
+                activeNode: 'level2',
+                chartType: 'double',
+                chartData: [
+                    { label: 'LL', samples: leftLeftSubset.length, danceable: leftLeftSubset.filter(d => d.danceability === 1).length, gini: calculateGini(leftLeftSubset) },
+                    { label: 'LR', samples: leftRightSubset.length, danceable: leftRightSubset.filter(d => d.danceability === 1).length, gini: calculateGini(leftRightSubset) },
+                    { label: 'RL', samples: rightLeftSubset.length, danceable: rightLeftSubset.filter(d => d.danceability === 1).length, gini: calculateGini(rightLeftSubset) },
+                    { label: 'RR', samples: rightRightSubset.length, danceable: rightRightSubset.filter(d => d.danceability === 1).length, gini: calculateGini(rightRightSubset) }
+                ]
+            }
+        ];
+
+        function updateUI() {
+            const step = steps[currentStep];
+            document.getElementById('stepTitle').textContent = step.title;
+            document.getElementById('stepDescription').textContent = step.description;
+            document.getElementById('stepIndicator').textContent = `Step ${currentStep + 1} of ${steps.length}`;
+            
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+            
+            updateTree();
+            updateChart();
+        }
+
+        function updateTree() {
+            const svg = document.getElementById('treeSvg');
+            const step = steps[currentStep];
+            
+            let svgContent = `
+                <g opacity="${step.activeNode === 'root' ? '1' : '0.5'}">
+                    <rect x="350" y="20" width="100" height="60" fill="#3b82f6" stroke="#1e40af" stroke-width="2" rx="5"/>
+                    <text x="400" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Root</text>
+                    <text x="400" y="65" text-anchor="middle" fill="white" font-size="12">n=12</text>
+                </g>
+            `;
+
+            if (currentStep >= 1) {
+                svgContent += `
+                    <line x1="400" y1="80" x2="250" y2="150" stroke="#1e40af" stroke-width="2"/>
+                    <line x1="400" y1="80" x2="550" y2="150" stroke="#1e40af" stroke-width="2"/>
+                    <text x="310" y="110" fill="#1e40af" font-size="12">Energy ≤ ${energySplit.threshold.toFixed(2)}</text>
+                    <text x="460" y="110" fill="#1e40af" font-size="12">Energy &gt; ${energySplit.threshold.toFixed(2)}</text>
+                    
+                    <g opacity="${step.activeNode === 'level1' ? '1' : '0.5'}">
+                        <rect x="200" y="150" width="100" height="70" fill="#10b981" stroke="#059669" stroke-width="2" rx="5"/>
+                        <text x="250" y="175" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Low Energy</text>
+                        <text x="250" y="195" text-anchor="middle" fill="white" font-size="11">n=${leftSubset.length}</text>
+                        <text x="250" y="210" text-anchor="middle" fill="white" font-size="10">Gini=${calculateGini(leftSubset).toFixed(3)}</text>
+                    </g>
+                    
+                    <g opacity="${step.activeNode === 'level1' ? '1' : '0.5'}">
+                        <rect x="500" y="150" width="100" height="70" fill="#10b981" stroke="#059669" stroke-width="2" rx="5"/>
+                        <text x="550" y="175" text-anchor="middle" fill="white" font-size="12" font-weight="bold">High Energy</text>
+                        <text x="550" y="195" text-anchor="middle" fill="white" font-size="11">n=${rightSubset.length}</text>
+                        <text x="550" y="210" text-anchor="middle" fill="white" font-size="10">Gini=${calculateGini(rightSubset).toFixed(3)}</text>
+                    </g>
+                `;
+            }
+
+            if (currentStep >= 2) {
+                svgContent += `
+                    <line x1="250" y1="220" x2="150" y2="300" stroke="#059669" stroke-width="2"/>
+                    <line x1="250" y1="220" x2="350" y2="300" stroke="#059669" stroke-width="2"/>
+                    <line x1="550" y1="220" x2="450" y2="300" stroke="#059669" stroke-width="2"/>
+                    <line x1="550" y1="220" x2="650" y2="300" stroke="#059669" stroke-width="2"/>
+                    
+                    <text x="185" y="255" fill="#059669" font-size="10">T≤${tempoSplitLeft.threshold.toFixed(0)}</text>
+                    <text x="285" y="255" fill="#059669" font-size="10">T&gt;${tempoSplitLeft.threshold.toFixed(0)}</text>
+                    <text x="485" y="255" fill="#059669" font-size="10">V≤${valenceSplitRight.threshold.toFixed(2)}</text>
+                    <text x="585" y="255" fill="#059669" font-size="10">V&gt;${valenceSplitRight.threshold.toFixed(2)}</text>
+                    
+                    <g opacity="${step.activeNode === 'level2' ? '1' : '0.5'}">
+                        <rect x="100" y="300" width="100" height="70" fill="#f59e0b" stroke="#d97706" stroke-width="2" rx="5"/>
+                        <text x="150" y="325" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Low Tempo</text>
+                        <text x="150" y="343" text-anchor="middle" fill="white" font-size="10">n=${leftLeftSubset.length}</text>
+                        <text x="150" y="360" text-anchor="middle" fill="white" font-size="9">Dance: ${leftLeftSubset.filter(d => d.danceability === 1).length}/${leftLeftSubset.length}</text>
+                    </g>
+                    
+                    <g opacity="${step.activeNode === 'level2' ? '1' : '0.5'}">
+                        <rect x="300" y="300" width="100" height="70" fill="#f59e0b" stroke="#d97706" stroke-width="2" rx="5"/>
+                        <text x="350" y="325" text-anchor="middle" fill="white" font-size="11" font-weight="bold">High Tempo</text>
+                        <text x="350" y="343" text-anchor="middle" fill="white" font-size="10">n=${leftRightSubset.length}</text>
+                        <text x="350" y="360" text-anchor="middle" fill="white" font-size="9">Dance: ${leftRightSubset.filter(d => d.danceability === 1).length}/${leftRightSubset.length}</text>
+                    </g>
+                    
+                    <g opacity="${step.activeNode === 'level2' ? '1' : '0.5'}">
+                        <rect x="400" y="300" width="100" height="70" fill="#f59e0b" stroke="#d97706" stroke-width="2" rx="5"/>
+                        <text x="450" y="325" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Low Valence</text>
+                        <text x="450" y="343" text-anchor="middle" fill="white" font-size="10">n=${rightLeftSubset.length}</text>
+                        <text x="450" y="360" text-anchor="middle" fill="white" font-size="9">Dance: ${rightLeftSubset.filter(d => d.danceability === 1).length}/${rightLeftSubset.length}</text>
+                    </g>
+                    
+                    <g opacity="${step.activeNode === 'level2' ? '1' : '0.5'}">
+                        <rect x="600" y="300" width="100" height="70" fill="#f59e0b" stroke="#d97706" stroke-width="2" rx="5"/>
+                        <text x="650" y="325" text-anchor="middle" fill="white" font-size="11" font-weight="bold">High Valence</text>
+                        <text x="650" y="343" text-anchor="middle" fill="white" font-size="10">n=${rightRightSubset.length}</text>
+                        <text x="650" y="360" text-anchor="middle" fill="white" font-size="9">Dance: ${rightRightSubset.filter(d => d.danceability === 1).length}/${rightRightSubset.length}</text>
+                    </g>
+                `;
+            }
+
+            svg.innerHTML = svgContent;
+        }
+
+        function updateChart() {
+            const step = steps[currentStep];
+            const container = document.getElementById('chartContainer');
+            
+            if (step.chartType === 'single') {
+                document.getElementById('chartTitle').textContent = 'Feature Selection: Impurity Comparison';
+                const maxValue = Math.max(...step.chartData.map(d => d.value));
+                
+                let html = '<div class="bar-chart">';
+                step.chartData.forEach(item => {
+                    const height = (item.value / maxValue) * 150;
+                    html += `
+                        <div class="bar-group">
+                            <div class="bar-value">${item.value.toFixed(3)}</div>
+                            <div class="bar" style="height: ${height}px;"></div>
+                            <div class="bar-label">${item.label}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                html += '<div class="legend"><div class="legend-item"><div class="legend-color" style="background: #3b82f6;"></div><span>Impurity</span></div></div>';
+                
+                container.innerHTML = html;
+            } else {
+                document.getElementById('chartTitle').textContent = 'Node Statistics & Impurity';
+                
+                const maxSamples = Math.max(...step.chartData.map(d => d.samples));
+                const maxGini = Math.max(...step.chartData.map(d => d.gini));
+                
+                let html = '<div class="bar-chart">';
+                step.chartData.forEach(item => {
+                    const samplesHeight = (item.samples / maxSamples) * 150;
+                    const danceableHeight = (item.danceable / maxSamples) * 150;
+                    html += `
+                        <div class="bar-group">
+                            <div style="display: flex; gap: 4px; align-items: flex-end;">
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar-value">${item.samples}</div>
+                                    <div class="bar green" style="height: ${samplesHeight}px; width: 25px;"></div>
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar-value">${item.danceable}</div>
+                                    <div class="bar orange" style="height: ${danceableHeight}px; width: 25px;"></div>
+                                </div>
+                            </div>
+                            <div class="bar-label">${item.label}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                html += '<div class="legend"><div class="legend-item"><div class="legend-color" style="background: #10b981;"></div><span>Total Samples</span></div><div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div><span>Danceable Songs</span></div></div>';
+                
+                html += '<div class="bar-chart" style="margin-top: 16px;">';
+                step.chartData.forEach(item => {
+                    const giniHeight = (item.gini / (maxGini || 0.5)) * 150;
+                    html += `
+                        <div class="bar-group">
+                            <div class="bar-value">${item.gini.toFixed(3)}</div>
+                            <div class="bar red" style="height: ${Math.max(giniHeight, 5)}px;"></div>
+                            <div class="bar-label">${item.label}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                html += '<div class="legend"><div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div><span>Impurity</span></div></div>';
+                
+                container.innerHTML = html;
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateUI();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
